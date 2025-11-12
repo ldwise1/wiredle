@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wiredle</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Wiredle</h1>
+
+    <section id="game">
+      <div class="controls">
+        <label for="guess">Guess a character</label>
+        <div class="typeahead-wrap">
+          <input 
+            id="guess" 
+            autocomplete="off" 
+            placeholder="Type a name or alias (e.g. Dukie)" 
+          />
+          <div 
+            id="suggestions" 
+            class="suggestions hidden" 
+            role="listbox" 
+            aria-label="Character suggestions"
+          ></div>
+        </div>
+        <div class="buttons">
+          <button id="submit">Guess</button>
+          <button id="new-round">New Round</button>
+        </div>
+      </div>
+
+      <div id="result-area" class="result-area" aria-live="polite"></div>
+    </section>
+
+    <section id="feedback">
+      <h2>Guesses</h2>
+      <div id="feedback-grid" class="feedback-grid"></div>
+    </section>
+
+    <section id="legend">
+      <h3>Legend</h3>
+      <div class="legend-row"><span class="dot green"></span> Exact / full match</div>
+      <div class="legend-row"><span class="dot yellow"></span> Partial match</div>
+      <div class="legend-row"><span class="dot red"></span> No match</div>
+    </section>
+  </main>
+
+  <script src="script.js" type="module"></script>
+</body>
+</html>

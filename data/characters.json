@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Jimmy McNulty",
+    "aliases": ["Jimmy", "McNulty"],
+    "seasons": [1,2,3,4,5],
+    "first": "S1E1",
+    "last": "S5E10",
+    "episodeCount": 38,
+    "gender": "male",
+    "orgs": ["BPD", "Homicide"]
+  },
+  {
+    "name": "Duquan 'Dukie' Weems",
+    "aliases": ["Duquan Weems", "Duke", "Dukie"],
+    "seasons": [1,2,3],
+    "first": "S1E4",
+    "last": "S3E12",
+    "episodeCount": 20,
+    "gender": "male",
+    "orgs": ["School", "Stanfield"]
+  }
+]
