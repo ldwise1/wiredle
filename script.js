@@ -7,7 +7,8 @@ const categories = [
   { key: "last", label: "Last appearance" },
   { key: "episodeCount", label: "Episode count" },
   { key: "gender", label: "Gender" },
-  { key: "orgs", label: "Organizations" },
+  { key: "orgs", label: "Organization" },
+  { key: "deceased", label: "Deceased" },
 ];
 
 const categoryTooltips = {
@@ -20,12 +21,42 @@ const categoryTooltips = {
     "Green: exact episode count\nYellow: within ±5 episodes\nRed: more than 5 difference",
   gender: "Green: gender matches\nRed: gender does not match",
   orgs: "Green: exact organizations match\nYellow: at least one organization matches\nRed: no organizations match",
+  deceased: "Green: guess matches deceased status\nRed: guess does not match",
 };
 
 let characters = [];
 let secret = null;
+let currentSuggestions = [];
+let incorrectGuesses = 0;
+let letterHintEnabled = true;
+let revealedIndices = new Set();
+let guessedThisRound = new Set();
+
+document
+  .getElementById("letter-hint-toggle")
+  .addEventListener("change", (e) => {
+    letterHintEnabled = e.target.checked;
+    if (letterHintEnabled) {
+      updateLetterHint();
+    } else {
+      document.getElementById("letter-hint").textContent = "";
+    }
+  });
 
 // Utility functions
+
+function generateLetterHint() {
+  if (!secret || !letterHintEnabled) return "";
+
+  const name = secret.name;
+  const letters = name.split("");
+  const hint = letters.map((char, idx) => {
+    if (char === " ") return " "; // preserve spaces
+    return revealedIndices.has(idx) ? char : "_";
+  });
+  return hint.join("");
+}
+
 function normalize(str) {
   if (str === undefined || str === null) return "";
   return String(str).trim().toLowerCase();
@@ -98,6 +129,11 @@ function compareOrgs(guessOrgs, secretOrgs) {
   return "red";
 }
 
+function compareDeceased(guess, secret) {
+  if (!guess || !secret) return "red";
+  return normalize(guess) === normalize(secret) ? "green" : "red";
+}
+
 function compareCategory(catKey, guessObj, secretObj) {
   switch (catKey) {
     case "seasons":
@@ -111,6 +147,8 @@ function compareCategory(catKey, guessObj, secretObj) {
       return compareGender(guessObj.gender, secretObj.gender);
     case "orgs":
       return compareOrgs(guessObj.orgs, secretObj.orgs);
+    case "deceased":
+      return compareDeceased(guessObj.deceased, secretObj.deceased);
     default:
       return "red";
   }
@@ -202,6 +240,7 @@ function matchCharacters(query) {
   const contains = [];
 
   for (const c of characters) {
+    if (guessedThisRound.has(c.name)) continue;
     let bestScore = null;
     for (const t of c.searchTokens) {
       if (t.startsWith(q)) {
@@ -218,6 +257,7 @@ function matchCharacters(query) {
 }
 
 function renderSuggestions(items) {
+  currentSuggestions = items;
   const container = document.getElementById("suggestions");
   container.innerHTML = "";
 
@@ -260,13 +300,19 @@ function debounce(fn, wait = 180) {
 
 // Game logic
 function newRound() {
+  updateLetterHint();
   secret = pickRandomCharacter();
+  incorrectGuesses = 0;
+  revealedIndices = new Set();
+  guessedThisRound.clear();
+  updateLetterHint(); // clear hints
   document.getElementById("result-area").textContent = secret
     ? "New round started. Make a guess!"
     : "No characters loaded.";
   document.getElementById("guess").value = "";
   renderFeedbackHeader();
   document.getElementById("submit").style.display = "inline-block";
+  document.getElementById("reveal").style.display = "inline-block";
 }
 
 function findCharacterByNameOrAlias(name) {
@@ -285,34 +331,82 @@ function findCharacterByNameOrAlias(name) {
 
 function onGuess() {
   const input = document.getElementById("guess");
-  const name = input.value.trim();
+  let name = input.value.trim();
   if (!name) return;
 
-  const guessObj = findCharacterByNameOrAlias(name) || {
-    name,
-    aliases: [],
-    seasons: [],
-    first: null,
-    last: null,
-    episodeCount: null,
-    gender: null,
-    orgs: [],
-  };
+  const exactMatch = findCharacterByNameOrAlias(name);
+  if (!exactMatch) {
+    if (currentSuggestions.length > 0) {
+      name = currentSuggestions[0].name;
+    } else {
+      document.getElementById("result-area").textContent =
+        "No matching character — please choose from the suggestions.";
+      return;
+    }
+  }
+
+  const guessObj = findCharacterByNameOrAlias(name);
+  if (!guessObj) return;
+
+  const correct = normalize(guessObj.name) === normalize(secret.name);
 
   // render feedback card entries
   renderFeedback(guessObj);
+  guessedThisRound.add(guessObj.name);
 
-  if (normalize(guessObj.name) === normalize(secret.name)) {
+  if (correct) {
     document.getElementById(
       "result-area"
     ).textContent = `Correct — it's ${secret.name}!`;
     document.getElementById("submit").style.display = "none";
+    document.getElementById("reveal").style.display = "none";
+    // reveal full letters
+    revealedIndices = new Set(secret.name.split("").map((_, i) => i));
+    updateLetterHint();
   } else {
     document.getElementById("result-area").textContent = `Incorrect.`;
+    incorrectGuesses++;
+
+    if (incorrectGuesses >= 5 && letterHintEnabled) {
+      const nameChars = secret.name.split("");
+      const unrevealedIndices = [];
+      for (let i = 0; i < nameChars.length; i++) {
+        if (nameChars[i] !== " " && !revealedIndices.has(i))
+          unrevealedIndices.push(i);
+      }
+
+      if (unrevealedIndices.length) {
+        const randIdx =
+          unrevealedIndices[
+            Math.floor(Math.random() * unrevealedIndices.length)
+          ];
+        revealedIndices.add(randIdx);
+      }
+      updateLetterHint();
+    }
   }
 
-  // <-- clear the input for the next guess
+  currentSuggestions = [];
   input.value = "";
+}
+
+function updateLetterHint() {
+  const el = document.getElementById("letter-hint");
+  if (!letterHintEnabled || incorrectGuesses < 5) {
+    el.textContent = "";
+    return;
+  }
+  el.textContent = generateLetterHint();
+}
+
+function revealSecret() {
+  if (!secret) return;
+  renderFeedback(secret);
+  document.getElementById(
+    "result-area"
+  ).textContent = `Revealed — it's ${secret.name}!`;
+  document.getElementById("submit").style.display = "none";
+  document.getElementById("reveal").style.display = "none";
 }
 
 // Initialize
@@ -330,11 +424,13 @@ async function loadData() {
     ? "New round started. Make a guess!"
     : "No characters loaded.";
   renderFeedbackHeader();
+  updateLetterHint();
 }
 
 // Event listeners
 document.getElementById("submit").addEventListener("click", onGuess);
 document.getElementById("new-round").addEventListener("click", newRound);
+document.getElementById("reveal").addEventListener("click", revealSecret);
 
 document.getElementById("guess").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {

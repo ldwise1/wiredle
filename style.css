@@ -4,7 +4,8 @@
   --red: #c0392b;
   --bg: #1e1e1e;
   --muted: #b0b0b0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial;
 }
 
 body {
@@ -118,7 +119,7 @@ button:hover {
 
 .feedback-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(8, 1fr);
   gap: 8px;
   margin-top: 0.75rem;
   align-items: center;
@@ -154,6 +155,10 @@ button:hover {
 .feedback-card.feedback-header {
   position: relative;
   cursor: help;
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-align: center;
+  font-size: 0.95rem;
 }
 
 .feedback-card.feedback-header.category-header::after {
